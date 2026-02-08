@@ -7,26 +7,26 @@ import _sqlite3
 app = Flask(__name__)
 CORS(app)
 
-db = _sqlite3.connect('db/urls.db', check_same_thread=False)
+
+DB_PATH = 'db/urls.db'
+CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+SHORTCODE_LENGTH = 3
+BASE_DOMAIN = request.host_url
+
+
+
+db = _sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor= db.cursor()
 
 
-
 def generate_shortcode():
-    chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    shortcode = ""
-    while True:
-        shortcode = "".join(random.choice(chars) for _ in range(3))
-        return shortcode
+        return "".join(random.choice(CHARS) for _ in range(SHORTCODE_LENGTH))
     
-
 
 def is_shortcode_unique(generated_shortcode):
     cursor.execute("SELECT COUNT(*) FROM urls WHERE short_code = ?", (generated_shortcode,))
     count = cursor.fetchone()[0]
     return count == 0 
-
-
 
 
 def save_url_dict_to_db(url, shortcode):
@@ -37,7 +37,6 @@ def save_url_dict_to_db(url, shortcode):
 def create_short_url(shortcode):
     return f"{request.host_url}/{shortcode}"\
     
-
 
 def check_url_in_db(url):
     cursor.execute("SELECT short_code FROM urls WHERE original_url = ?", (url,))
