@@ -35,7 +35,7 @@ def save_url_dict_to_db(url, shortcode):
 
 
 def create_short_url(shortcode):
-    return f"{request.host_url}/{shortcode}"\
+    return f"{BASE_DOMAIN}/{shortcode}"\
     
 
 def check_url_in_db(url):
