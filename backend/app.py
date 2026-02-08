@@ -62,17 +62,23 @@ def check_url_in_db(url):
 def shorten_url():
     data = request.get_json()
     original_url = data.get('url')
+    existing_shortcode = check_url_in_db(original_url)
+    
+    
+    if existing_shortcode:
+        short_url = create_short_url(existing_shortcode)
+        return jsonify({"short_url": short_url}), 200
 
-    if not original_url:
-        return jsonify({"error": "No URL provided"}), 400
-
+   
     shortcode = generate_shortcode()
     while not is_shortcode_unique(shortcode):
         shortcode = generate_shortcode()
 
+    
     save_url_dict_to_db(original_url, shortcode)
     short_url = create_short_url(shortcode)
 
+    
     return jsonify({"short_url": short_url}), 201
 
 
@@ -81,16 +87,18 @@ def shorten_url():
 
 
 @app.route('/<short>', methods=['GET'])
-def redirect_to_original(short):
+def handle_redirect(short):
     cursor.execute("SELECT original_url FROM urls WHERE short_code = ?", (short,))
     result = cursor.fetchone()
-
+    
+    
     if result:
         original_url = result[0]
         return redirect(original_url)
+    
+    
     else:
         return jsonify({"error": "Short URL not found"}), 404
-
 
 
 
