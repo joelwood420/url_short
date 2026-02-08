@@ -70,7 +70,7 @@ def get_shortcode_for_url(url):
     return None
 
 
-def get_url_for_shortcode(shortcode):
+def get_url_by_shortcode(shortcode):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT original_url FROM urls WHERE short_code = ?", (shortcode,))
@@ -124,7 +124,7 @@ def shorten_url():
 
 @app.route('/<short>', methods=['GET'])
 def handle_redirect(shortcode):
-    original_url = get_url_for_shortcode(shortcode)
+    original_url = get_url_by_shortcode(shortcode)
     if original_url:
         return redirect(original_url)
     else:
