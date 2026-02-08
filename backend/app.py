@@ -41,13 +41,19 @@ def generate_shortcode():
         return "".join(random.choice(CHARS) for _ in range(SHORTCODE_LENGTH))
     
 
-def is_shortcode_unique(generated_shortcode):
+def execute_query(query, params=()):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM urls WHERE short_code = ?", (generated_shortcode,))
-    exists = cursor.fetchone() is not None
+    cursor.execute(query, params)
+    result = cursor.fetchone() 
     conn.close()
-    return not exists
+    return result
+
+
+
+def is_shortcode_unique(generated_shortcode):
+    result = execute_query("SELECT 1 FROM urls WHERE short_code = ?", (generated_shortcode,))
+    return result is None
 
 
 
@@ -60,25 +66,13 @@ def save_url(url, shortcode):
 
 
 def get_shortcode_for_url(url):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT short_code FROM urls WHERE original_url = ?", (url,))
-    result = cursor.fetchone()
-    conn.close()
-    if result:
-        return result['short_code']
-    return None
+    result = execute_query("SELECT short_code FROM urls WHERE original_url = ?", (url,))
+    return result['short_code'] if result else None
 
 
 def get_url_by_shortcode(shortcode):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT original_url FROM urls WHERE short_code = ?", (shortcode,))
-    result = cursor.fetchone()
-    conn.close()
-    if result:
-        return result['original_url']
-    return None
+    result = execute_query("SELECT original_url FROM urls WHERE short_code = ?", (shortcode,))
+    return result['original_url'] if result else None
     
 
 
