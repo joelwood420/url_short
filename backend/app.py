@@ -2,7 +2,8 @@ from flask import Flask, redirect, request, jsonify
 from flask_cors import CORS
 from dataclasses import dataclass
 import random
-import _sqlite3
+import os
+import sqlite3
 
 app = Flask(__name__)
 CORS(app)
@@ -11,12 +12,29 @@ CORS(app)
 DB_PATH = 'db/urls.db'
 CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 SHORTCODE_LENGTH = 3
-BASE_DOMAIN = request.host_url
 
 
 
-db = _sqlite3.connect(DB_PATH, check_same_thread=False)
-cursor= db.cursor()
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db_connection()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS urls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            original_url TEXT NOT NULL,
+            short_code TEXT UNIQUE NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 
 def generate_shortcode():
@@ -24,32 +42,49 @@ def generate_shortcode():
     
 
 def is_shortcode_unique(generated_shortcode):
-    cursor.execute("SELECT COUNT(*) FROM urls WHERE short_code = ?", (generated_shortcode,))
-    count = cursor.fetchone()[0]
-    return count == 0 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM urls WHERE short_code = ?", (generated_shortcode,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return not exists
 
 
-def save_url_dict_to_db(url, shortcode):
+
+def save_url(url, shortcode):
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("INSERT INTO urls (original_url, short_code) VALUES (?, ?)", (url, shortcode))
-    db.commit()
+    conn.commit()
+    conn.close()
 
 
-def create_short_url(shortcode):
-    return f"{BASE_DOMAIN}/{shortcode}"\
-    
-
-def check_url_in_db(url):
+def get_shortcode_for_url(url):
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("SELECT short_code FROM urls WHERE original_url = ?", (url,))
     result = cursor.fetchone()
+    conn.close()
     if result:
-        return result[0]
+        return result['short_code']
+    return None
+
+
+def get_url_for_shortcode(shortcode):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT original_url FROM urls WHERE short_code = ?", (shortcode,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return result['original_url']
     return None
     
 
-        
 
-
-
+def create_short_url(shortcode):
+    return f"{request.host_url}{shortcode}"
+    
 
 
 
@@ -61,47 +96,43 @@ def check_url_in_db(url):
 def shorten_url():
     data = request.get_json()
     original_url = data.get('url')
-    existing_shortcode = check_url_in_db(original_url)
     
     
+    if not original_url:
+        return jsonify({"error": "No URL provided"}), 400
+    
+    
+    existing_shortcode = get_shortcode_for_url(original_url)
     if existing_shortcode:
         short_url = create_short_url(existing_shortcode)
         return jsonify({"short_url": short_url}), 200
-
-   
-    shortcode = generate_shortcode()
-    while not is_shortcode_unique(shortcode):
+    
+    
+    while True:
         shortcode = generate_shortcode()
-
+        if is_shortcode_unique(shortcode):
+            break
     
-    save_url_dict_to_db(original_url, shortcode)
+    
+    save_url(original_url, shortcode)
     short_url = create_short_url(shortcode)
-
-    
     return jsonify({"short_url": short_url}), 201
 
 
 
 
 
-
 @app.route('/<short>', methods=['GET'])
-def handle_redirect(short):
-    cursor.execute("SELECT original_url FROM urls WHERE short_code = ?", (short,))
-    result = cursor.fetchone()
-    
-    
-    if result:
-        original_url = result[0]
+def handle_redirect(shortcode):
+    original_url = get_url_for_shortcode(shortcode)
+    if original_url:
         return redirect(original_url)
-    
-    
     else:
-        return jsonify({"error": "Short URL not found"}), 404
-
+        return jsonify({"error": "Shortcode not found"}), 404
 
 
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
 
