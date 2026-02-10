@@ -99,6 +99,7 @@ def shorten_url():
     existing_shortcode = get_shortcode_for_url(original_url)
     if existing_shortcode:
         short_url = create_short_url(existing_shortcode)
+        print(f"Short URL: {short_url}")
         return jsonify({"short_url": short_url}), 200
     
     
@@ -110,6 +111,7 @@ def shorten_url():
     
     save_url(original_url, shortcode)
     short_url = create_short_url(shortcode)
+    print(f"Short URL: {short_url}")
     return jsonify({"short_url": short_url}), 201
 
 
