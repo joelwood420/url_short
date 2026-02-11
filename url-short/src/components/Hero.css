@@ -1,0 +1,94 @@
+.hero-container {
+    background-color: #2c3e50;
+    color: white;
+    padding: 64px 32px;
+    position: relative;
+    overflow: hidden;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.diamond-bg {
+    position: absolute;
+    top: 50%;
+    left: 30%;
+    transform: translate(-50%, -50%) rotate(40deg);
+    width: 300px;
+    height: 300px;
+    background-color: rgba(100, 181, 246, 0.2);
+    z-index: 0;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: left;
+    width: 100%;
+    max-width: 600px;
+}
+
+.hero-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+    font-weight: bold;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.url-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.submit-button {
+    padding: 10px 20px;
+    background-color: #90caf9;
+    border: none;
+    border-radius: 4px;
+    color: #000;
+}
+
+.submit-button:hover {
+    background-color: #64b5f6;
+}
+
+.result-container {
+    margin-top: 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.result-container a {
+    color: #90caf9;
+    text-decoration: none;
+}
+
+.copy-button {
+    background-color: #a8d4f0;
+    color: #333;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.copy-button:hover {
+    background-color: #8cc4e8;
+}
