@@ -1,4 +1,5 @@
 from flask import Flask, redirect, request, jsonify
+import requests
 from flask_cors import CORS
 from dataclasses import dataclass
 import random
@@ -78,6 +79,18 @@ def get_url_by_shortcode(shortcode):
 
 def create_short_url(shortcode):
     return f"{request.host_url}{shortcode}"
+
+
+def is_valid_url(url):
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    try:
+        response = requests.get(url, timeout=5)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+    
+        
     
 
 
@@ -90,19 +103,24 @@ def create_short_url(shortcode):
 def shorten_url():
     data = request.get_json()
     original_url = data.get('url')
-    
-    
+
     if not original_url:
         return jsonify({"error": "No URL provided"}), 400
-    
-    
+
+    if not original_url.startswith(('http://', 'https://')):
+        original_url = 'https://' + original_url
+
+    if not is_valid_url(original_url):
+        return jsonify({"error": "Please input a valid URL"}), 400
+
     existing_shortcode = get_shortcode_for_url(original_url)
+
     if existing_shortcode:
         short_url = create_short_url(existing_shortcode)
         print(f"Short URL: {short_url}")
         return jsonify({"short_url": short_url}), 200
-    
-    
+        
+        
     while True:
         shortcode = generate_shortcode()
         if is_shortcode_unique(shortcode):
