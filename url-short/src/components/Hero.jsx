@@ -1,22 +1,24 @@
 import React, { useState } from "react";
-import './Hero.css'
+import "./Hero.css";
 
 function Hero() {
     const [url, setUrl] = useState("");
     const [shortUrl, setShortUrl] = useState("");
+    const [qrCode, setQrCode] = useState("");
     const [error, setError] = useState("");
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setError(""); // Clear previous errors
-        setShortUrl(""); // Clear previous result
+        setError("");
+        setShortUrl(""); 
 
         try {
-            const response = await fetch("http://127.0.0.1:5000/shorten", {
+            const response = await fetch("http://127.0.0.1:5001/shorten", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
+                credentials: "include",
                 body: JSON.stringify({ url }),
             });
 
@@ -24,6 +26,7 @@ function Hero() {
 
             if (response.ok) {
                 setShortUrl(data.short_url);
+                setQrCode(data.qr_code);
             } else {
                 setError(data.error || "Something went wrong");
             }
@@ -37,30 +40,74 @@ function Hero() {
         navigator.clipboard.writeText(shortUrl);
     };
 
+    const handleSaveQr = () => {
+        const link = document.createElement("a");
+        link.href = `data:image/png;base64,${qrCode}`;
+        link.download = "qrcode.png";
+        link.click();
+    };
+
+    const handleCopyQr = async () => {
+        try {
+            const res = await fetch(`data:image/png;base64,${qrCode}`);
+            const blob = await res.blob();
+            await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+            ]);
+        } catch (err) {
+            console.error("Failed to copy QR code:", err);
+        }
+    };
+
+    const handleCreateAnother = () => {
+        setUrl("");
+        setShortUrl("");
+        setQrCode("");
+        setError("");
+    };
+
     return (
-        <div className="hero-container">
-            <div className="diamond-bg"></div>
-            <div className="hero-content">
-                <h2 className="hero-title">Enter your URL here</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="input-group">
-                        <input
-                            className="url-input"
-                            type="text"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder="https://example.com"
-                        />
-                        <button className="submit-button" type="submit">SHORTEN</button>
-                    </div>
-                </form>
-                {error && <p className="error-message">{error}</p>}
-                {shortUrl && (
-                    <div className="result-container">
-                        <p>Your Shortened URL: <a href={shortUrl} target="_blank" rel="noopener noreferrer">{shortUrl}</a></p>
-                        <button className="copy-button" onClick={handleCopy}>Copy</button>
-                    </div>
+        <div className="hero-wrapper">
+            <div className="hero-card">
+                {!shortUrl ? (
+                    <>
+                        <h1 className="hero-logo">URL Short</h1>
+                        <p className="hero-subtitle">Generate a Short Url</p>
+                        <form onSubmit={handleSubmit}>
+                            <input
+                                className="hero-input"
+                                type="text"
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                placeholder="ENTER A URL"
+                            />
+                            <button className="hero-button" type="submit">CREATE</button>
+                        </form>
+                        {error && <p className="hero-error">{error}</p>}
+                    </>
+                ) : (
+                    <>
+                        {qrCode && (
+                            <>
+                                <img className="hero-qr" src={`data:image/png;base64,${qrCode}`} alt="QR Code" />
+                                <div className="hero-qr-actions">
+                                    <button className="hero-qr-btn" onClick={handleSaveQr}>Save QR</button>
+                                    <button className="hero-qr-btn" onClick={handleCopyQr}>Copy QR</button>
+                                </div>
+                            </>
+                        )}
+                        <h2 className="hero-result-title">Your short link:</h2>
+                        <a className="hero-short-link" href={shortUrl} target="_blank" rel="noopener noreferrer">
+                            {shortUrl}
+                        </a>
+                        <div className="hero-actions">
+                            <button className="hero-copy-link" onClick={handleCopy}>Copy URL</button>
+                            <span className="hero-or">or</span>
+                            <button className="hero-create-another" onClick={handleCreateAnother}>Create another one</button>
+                        </div>
+                    </>
                 )}
+                <p className="hero-footer">Created by You</p>
             </div>
         </div>
     );
