@@ -1,13 +1,16 @@
 from flask import Flask, redirect, request, jsonify
 import requests
 from flask_cors import CORS
-from dataclasses import dataclass
 import random
 import os
 import sqlite3
+import uuid
+import qrcode
+import io
+import base64
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 
 DB_PATH = 'db/urls.db'
@@ -24,18 +27,6 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-
-def init_db():
-    conn = get_db_connection()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS urls (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            original_url TEXT NOT NULL,
-            short_code TEXT UNIQUE NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
 
 
 def generate_shortcode():
@@ -58,10 +49,10 @@ def is_shortcode_unique(generated_shortcode):
 
 
 
-def save_url(url, shortcode):
+def save_url(url, shortcode, session_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO urls (original_url, short_code) VALUES (?, ?)", (url, shortcode))
+    cursor.execute("INSERT INTO urls (session_id, original_url, short_code) VALUES (?, ?, ?)", (session_id, url, shortcode))
     conn.commit()
     conn.close()
 
@@ -90,12 +81,27 @@ def is_valid_url(url):
     except requests.exceptions.RequestException:
         return False
     
-        
-    
+
+def get_session_id():
+    return request.cookies.get('session_id')
+
+
+def create_session_id():
+    return str(uuid.uuid4())
+
+
+def generate_qr_code(short_url):
+    qr = qrcode.QRCode(version=1, box_size=12, border=5)
+    qr.add_data(short_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#6ecfb0", back_color='#2d2d2d')
+    buffer = io.BytesIO()     # Create an in-memory buffer to hold the image data
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8') # Return the QR code as string of bytes
 
 
 
-    
 
 
 
@@ -113,40 +119,63 @@ def shorten_url():
     if not is_valid_url(original_url):
         return jsonify({"error": "Please input a valid URL"}), 400
 
+    session_id = get_session_id()
+    if not session_id:
+        session_id = create_session_id()
+
     existing_shortcode = get_shortcode_for_url(original_url)
 
     if existing_shortcode:
         short_url = create_short_url(existing_shortcode)
+        qr_code = generate_qr_code(short_url)
         print(f"Short URL: {short_url}")
-        return jsonify({"short_url": short_url}), 200
+        response = jsonify({"short_url": short_url, "qr_code": qr_code})
+        response.set_cookie('session_id', session_id)
+        return response, 200
         
         
     while True:
         shortcode = generate_shortcode()
         if is_shortcode_unique(shortcode):
             break
-    
-    
-    save_url(original_url, shortcode)
+
+    save_url(original_url, shortcode, session_id)
     short_url = create_short_url(shortcode)
+    qr_code = generate_qr_code(short_url)
     print(f"Short URL: {short_url}")
-    return jsonify({"short_url": short_url}), 201
+    response = jsonify({"short_url": short_url, "qr_code": qr_code})
+    response.set_cookie('session_id', session_id)
+    return response, 201
 
 
 
 
 
-@app.route('/<short>', methods=['GET'])
+@app.route('/<shortcode>', methods=['GET'])
 def handle_redirect(shortcode):
     original_url = get_url_by_shortcode(shortcode)
     if original_url:
         return redirect(original_url)
     else:
         return jsonify({"error": "Shortcode not found"}), 404
+    
 
+
+@app.route('/my-urls', methods=['GET'])
+def my_urls():
+    session_id = get_session_id()
+    if not session_id:
+        return jsonify({"error": "No active session"}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT original_url, short_code FROM urls WHERE session_id = ?", (session_id,))
+    urls = cursor.fetchall()
+    conn.close()
+
+    return jsonify(urls), 200
 
 
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
 
