@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Hero.css";
 
-function Hero() {
+function Hero({ onViewMyLinks, showMyUrls }) {
     const [url, setUrl] = useState("");
     const [shortUrl, setShortUrl] = useState("");
     const [qrCode, setQrCode] = useState("");
@@ -12,13 +12,15 @@ function Hero() {
         setError("");
         setShortUrl(""); 
 
+        const sessionId = localStorage.getItem("session_id") || "";
+
         try {
             const response = await fetch("http://127.0.0.1:5001/shorten", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "X-Session-ID": sessionId,
                 },
-                credentials: "include",
                 body: JSON.stringify({ url }),
             });
 
@@ -27,6 +29,9 @@ function Hero() {
             if (response.ok) {
                 setShortUrl(data.short_url);
                 setQrCode(data.qr_code);
+                if (data.session_id) {
+                    localStorage.setItem("session_id", data.session_id);
+                }
             } else {
                 setError(data.error || "Something went wrong");
             }
@@ -67,26 +72,29 @@ function Hero() {
     };
 
     return (
-        <div className="hero-wrapper">
-            <div className="hero-card">
-                {!shortUrl ? (
-                    <>
-                        <h1 className="hero-logo">URL Short</h1>
-                        <p className="hero-subtitle">Generate a Short Url</p>
-                        <form onSubmit={handleSubmit}>
-                            <input
-                                className="hero-input"
-                                type="text"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                placeholder="ENTER A URL"
-                            />
-                            <button className="hero-button" type="submit">CREATE</button>
-                        </form>
-                        {error && <p className="hero-error">{error}</p>}
-                    </>
-                ) : (
-                    <>
+        <div className={`hero-wrapper ${showMyUrls ? 'hero-wrapper--compact' : ''}`}>
+            <div className={`hero-card ${shortUrl ? 'hero-card--has-result' : ''}`}>
+                <div className="hero-left">
+                    <h1 className="hero-logo">URL Short</h1>
+                    <p className="hero-subtitle">Generate a Short Url</p>
+                    <form onSubmit={handleSubmit}>
+                        <input
+                            className="hero-input"
+                            type="text"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            placeholder="ENTER A URL"
+                        />
+                        <button className="hero-button" type="submit">CREATE</button>
+                    </form>
+                    {error && <p className="hero-error">{error}</p>}
+                    <button className="hero-mylinks-btn" onClick={onViewMyLinks}>
+                        {showMyUrls ? 'Hide My Links' : 'View My Links'}
+                    </button>
+                    <p className="hero-footer">Created by You</p>
+                </div>
+                {shortUrl && (
+                    <div className="hero-right">
                         {qrCode && (
                             <>
                                 <img className="hero-qr" src={`data:image/png;base64,${qrCode}`} alt="QR Code" />
@@ -105,9 +113,8 @@ function Hero() {
                             <span className="hero-or">or</span>
                             <button className="hero-create-another" onClick={handleCreateAnother}>Create another one</button>
                         </div>
-                    </>
+                    </div>
                 )}
-                <p className="hero-footer">Created by You</p>
             </div>
         </div>
     );

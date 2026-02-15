@@ -10,7 +10,7 @@ import io
 import base64
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_headers=["Content-Type", "X-Session-ID"])
 
 
 DB_PATH = 'db/urls.db'
@@ -83,7 +83,8 @@ def is_valid_url(url):
     
 
 def get_session_id():
-    return request.cookies.get('session_id')
+    session_id = request.headers.get('X-Session-ID')
+    return session_id if session_id else None
 
 
 def create_session_id():
@@ -129,8 +130,7 @@ def shorten_url():
         short_url = create_short_url(existing_shortcode)
         qr_code = generate_qr_code(short_url)
         print(f"Short URL: {short_url}")
-        response = jsonify({"short_url": short_url, "qr_code": qr_code})
-        response.set_cookie('session_id', session_id)
+        response = jsonify({"short_url": short_url, "qr_code": qr_code, "session_id": session_id})
         return response, 200
         
         
@@ -143,8 +143,7 @@ def shorten_url():
     short_url = create_short_url(shortcode)
     qr_code = generate_qr_code(short_url)
     print(f"Short URL: {short_url}")
-    response = jsonify({"short_url": short_url, "qr_code": qr_code})
-    response.set_cookie('session_id', session_id)
+    response = jsonify({"short_url": short_url, "qr_code": qr_code, "session_id": session_id})
     return response, 201
 
 
@@ -173,7 +172,19 @@ def my_urls():
     urls = cursor.fetchall()
     conn.close()
 
-    return jsonify(urls), 200
+    url_list = [{"original_url": row["original_url"], "short_code": row["short_code"]} for row in urls]
+    return jsonify(url_list), 200
+
+
+@app.route('/qr/<shortcode>', methods=['GET'])
+def get_qr(shortcode):
+    original_url = get_url_by_shortcode(shortcode)
+    if not original_url:
+        return jsonify({"error": "Shortcode not found"}), 404
+
+    short_url = create_short_url(shortcode)
+    qr_code = generate_qr_code(short_url)
+    return jsonify({"qr_code": qr_code}), 200
 
 
 if __name__ == '__main__':
