@@ -204,6 +204,10 @@
     padding-top: 40px;
 }
 
+.hero-footer--result {
+    display: none;
+}
+
 .hero-mylinks-btn {
     background: none;
     border: none;
@@ -237,10 +241,11 @@
 
     .hero-card {
         width: 100%;
-        min-height: auto;
+        min-height: 100vh;
         border-radius: 0;
         box-shadow: none;
-        padding: 80px 30px 20px;
+        padding: 80px 30px 30px;
+        justify-content: center;
     }
 
     .hero-card--has-result {
@@ -250,19 +255,29 @@
         gap: 0;
     }
 
+    .hero-left--has-result {
+        display: none;
+    }
+
     .hero-left {
+        padding-top: 48px;
         width: 100%;
     }
 
     .hero-right {
         border-left: none;
         padding-left: 0;
-        padding-top: 30px;
+        padding-top: 0;
         width: 100%;
+        align-items: center;
     }
 
     .hero-footer {
-        align-self: flex-start;
+        align-self: center;
         padding-top: 20px;
+    }
+
+    .hero-footer--result {
+        display: block;
     }
 }

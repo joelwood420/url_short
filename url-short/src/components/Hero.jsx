@@ -74,7 +74,7 @@ function Hero({ onViewMyLinks, showMyUrls }) {
     return (
         <div className={`hero-wrapper ${showMyUrls ? 'hero-wrapper--compact' : ''}`}>
             <div className={`hero-card ${shortUrl ? 'hero-card--has-result' : ''}`}>
-                <div className="hero-left">
+                <div className={`hero-left ${shortUrl ? 'hero-left--has-result' : ''}`}>
                     <h1 className="hero-logo">URL Short</h1>
                     <p className="hero-subtitle">Generate a Short Url</p>
                     <form onSubmit={handleSubmit}>
@@ -91,7 +91,7 @@ function Hero({ onViewMyLinks, showMyUrls }) {
                     <button className="hero-mylinks-btn" onClick={onViewMyLinks}>
                         {showMyUrls ? 'Hide My Links' : 'View My Links'}
                     </button>
-                    <p className="hero-footer">Created by You</p>
+                    <p className="hero-footer">Created by Joel</p>
                 </div>
                 {shortUrl && (
                     <div className="hero-right">
@@ -113,6 +113,7 @@ function Hero({ onViewMyLinks, showMyUrls }) {
                             <span className="hero-or">or</span>
                             <button className="hero-create-another" onClick={handleCreateAnother}>Create another one</button>
                         </div>
+                        <p className="hero-footer hero-footer--result">Created by Joel</p>
                     </div>
                 )}
             </div>
