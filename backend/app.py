@@ -1,16 +1,17 @@
-from flask import Flask, redirect, request, jsonify
+from flask import Flask, redirect, request, jsonify, send_from_directory, session
 import requests
 from flask_cors import CORS
 import random
 import os
 import sqlite3
-import uuid
 import qrcode
 import io
 import base64
+from user_auth import create_user, get_user_by_email, hash_password, check_password
 
-app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_headers=["Content-Type", "X-Session-ID"])
+app = Flask(__name__, static_folder='../url-short/dist', static_url_path='')
+app.secret_key = os.urandom(24)
+CORS(app, supports_credentials=True)
 
 
 DB_PATH = 'db/urls.db'
@@ -49,10 +50,13 @@ def is_shortcode_unique(generated_shortcode):
 
 
 
-def save_url(url, shortcode, session_id):
+def save_url(url, shortcode, user_id=None):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO urls (session_id, original_url, short_code) VALUES (?, ?, ?)", (session_id, url, shortcode))
+    cursor.execute("INSERT INTO urls (original_url, short_code) VALUES (?, ?)", (url, shortcode))
+    if user_id:
+        url_id = cursor.lastrowid
+        cursor.execute("INSERT INTO user_urls (user_id, url_id) VALUES (?, ?)", (user_id, url_id))
     conn.commit()
     conn.close()
 
@@ -82,13 +86,11 @@ def is_valid_url(url):
         return False
     
 
-def get_session_id():
-    session_id = request.headers.get('X-Session-ID')
-    return session_id if session_id else None
-
-
-def create_session_id():
-    return str(uuid.uuid4())
+def get_logged_in_user():
+    email = session.get('email')
+    if not email:
+        return None
+    return get_user_by_email(email)
 
 
 def generate_qr_code(short_url):
@@ -103,7 +105,53 @@ def generate_qr_code(short_url):
 
 
 
+@app.route('/', methods=['GET'])
+def render_react():
+    return send_from_directory(app._static_folder, 'index.html')
 
+
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    if get_user_by_email(email):
+        return jsonify({"error": "Email already registered"}), 409
+
+    password_hash = hash_password(password)
+    create_user(email, password_hash)
+    session['email'] = email
+    return jsonify({"message": "User created successfully", "email": email}), 201
+
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    user = get_user_by_email(email)
+    if not user or not check_password(password, user[2]):
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    session['email'] = email
+    return jsonify({"message": "Login successful", "email": email}), 200
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('email', None)
+    return jsonify({"message": "Logged out"}), 200
 
 
 @app.route('/shorten', methods=['POST'])
@@ -120,9 +168,7 @@ def shorten_url():
     if not is_valid_url(original_url):
         return jsonify({"error": "Please input a valid URL"}), 400
 
-    session_id = get_session_id()
-    if not session_id:
-        session_id = create_session_id()
+    user = get_logged_in_user()
 
     existing_shortcode = get_shortcode_for_url(original_url)
 
@@ -130,7 +176,7 @@ def shorten_url():
         short_url = create_short_url(existing_shortcode)
         qr_code = generate_qr_code(short_url)
         print(f"Short URL: {short_url}")
-        response = jsonify({"short_url": short_url, "qr_code": qr_code, "session_id": session_id})
+        response = jsonify({"short_url": short_url, "qr_code": qr_code})
         return response, 200
         
         
@@ -139,19 +185,30 @@ def shorten_url():
         if is_shortcode_unique(shortcode):
             break
 
-    save_url(original_url, shortcode, session_id)
+    save_url(original_url, shortcode, user[0] if user else None)
     short_url = create_short_url(shortcode)
     qr_code = generate_qr_code(short_url)
     print(f"Short URL: {short_url}")
-    response = jsonify({"short_url": short_url, "qr_code": qr_code, "session_id": session_id})
+    response = jsonify({"short_url": short_url, "qr_code": qr_code})
     return response, 201
 
 
 
 
 
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    return send_from_directory(os.path.join(app.static_folder, 'assets'), filename)
+
+
+
+
 @app.route('/<shortcode>', methods=['GET'])
 def handle_redirect(shortcode):
+    file_path = os.path.join(app.static_folder, shortcode)
+    if os.path.isfile(file_path):
+        return send_from_directory(app.static_folder, shortcode)
+    
     original_url = get_url_by_shortcode(shortcode)
     if original_url:
         return redirect(original_url)
@@ -162,18 +219,26 @@ def handle_redirect(shortcode):
 
 @app.route('/my-urls', methods=['GET'])
 def my_urls():
-    session_id = get_session_id()
-    if not session_id:
-        return jsonify({"error": "No active session"}), 401
+    
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"error": "Login to view your URLs"}), 401
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT original_url, short_code FROM urls WHERE session_id = ?", (session_id,))
+    cursor.execute("""
+        SELECT urls.original_url, urls.short_code 
+        FROM urls 
+        JOIN user_urls ON urls.id = user_urls.url_id 
+        WHERE user_urls.user_id = ?
+    """, (user[0],))
     urls = cursor.fetchall()
     conn.close()
 
     url_list = [{"original_url": row["original_url"], "short_code": row["short_code"]} for row in urls]
     return jsonify(url_list), 200
+
+
 
 
 @app.route('/qr/<shortcode>', methods=['GET'])
@@ -187,6 +252,40 @@ def get_qr(shortcode):
     return jsonify({"qr_code": qr_code}), 200
 
 
+@app.route('/delete/<shortcode>', methods=['DELETE'])
+def delete_url(shortcode):
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # First check if the user owns this URL
+    cursor.execute("""
+        SELECT urls.id FROM urls 
+        JOIN user_urls ON urls.id = user_urls.url_id 
+        WHERE urls.short_code = ? AND user_urls.user_id = ?
+    """, (shortcode, user[0]))
+    
+    url_record = cursor.fetchone()
+    if not url_record:
+        conn.close()
+        return jsonify({"error": "URL not found or not owned by user"}), 404
+    
+    # Delete the URL and its associations
+    url_id = url_record[0]
+    cursor.execute("DELETE FROM user_urls WHERE url_id = ?", (url_id,))
+    cursor.execute("DELETE FROM urls WHERE id = ?", (url_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"message": "URL deleted successfully"}), 200
+
+
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5000)
 

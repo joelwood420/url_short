@@ -1,6 +1,21 @@
 CREATE TABLE urls (
-    session_id TEXT NOT NULL,   
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     original_url TEXT NOT NULL,
-    short_code TEXT PRIMARY KEY NOT NULL UNIQUE,
+    short_code TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE USERS (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL
+);
+
+CREATE TABLE user_urls (
+    user_id INTEGER NOT NULL,
+    url_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, url_id),
+    FOREIGN KEY (user_id) REFERENCES USERS(id),
+    FOREIGN KEY (url_id) REFERENCES urls(id)
 );

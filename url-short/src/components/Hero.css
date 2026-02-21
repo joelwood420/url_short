@@ -5,11 +5,19 @@
     min-height: 100vh;
     background-color: #2d2d2d;
     transition: min-height 0.3s ease;
+    position: relative;
 }
 
 .hero-wrapper--compact {
     min-height: auto;
     padding: 60px 0;
+}
+
+.hero-auth-corner {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
 }
 
 .hero-card {
@@ -50,7 +58,7 @@
 }
 
 .hero-logo {
-    font-size: 2rem;
+    font-size: 32px;
     color: #6ecfb0;
     font-style: italic;
     margin: 0 0 8px;
@@ -59,7 +67,7 @@
 
 .hero-subtitle {
     color: #999;
-    font-size: 0.85rem;
+    font-size: 14px;
     font-style: italic;
     margin: 0 0 40px;
 }
@@ -71,10 +79,8 @@
     border-radius: 4px;
     background-color: transparent;
     color: #999;
-    font-size: 0.85rem;
+    font-size: 14px;
     text-align: center;
-    letter-spacing: 1px;
-    outline: none;
     box-sizing: border-box;
     margin-bottom: 20px;
 }
@@ -84,7 +90,10 @@
     letter-spacing: 2px;
 }
 
+
+
 .hero-input:focus {
+    outline: none;
     border-color: #6ecfb0;
 }
 
@@ -95,7 +104,7 @@
     color: #fff;
     border: none;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 14px;
     font-weight: bold;
     letter-spacing: 2px;
     cursor: pointer;
@@ -107,9 +116,13 @@
     border-color: transparent;
 }
 
+.hero-button:focus {
+    outline: none;
+}
+
 .hero-error {
     color: #ff6b6b;
-    font-size: 0.85rem;
+    font-size: 14px;
     margin-top: 16px;
 }
 
@@ -131,17 +144,12 @@
     background: none;
     border: 1px solid #6ecfb0;
     color: #6ecfb0;
-    font-size: 0.8rem;
+    font-size: 14px;
     padding: 6px 16px;
     border-radius: 4px;
     cursor: pointer;
-    /* transition: background 0.2s, color 0.2s; */
 }
 
-/* .hero-qr-btn:hover {
-    background: #6ecfb0;
-    color: #2d2d2d;
-} */
 
 .hero-qr-btn:focus {
     outline: none;
@@ -151,14 +159,14 @@
 
 .hero-result-title {
     color: #fff;
-    font-size: 1.4rem;
+    font-size: 22px;
     font-weight: bold;
     margin: 0 0 10px;
 }
 
 .hero-short-link {
     color: #6ecfb0;
-    font-size: 1.2rem;
+    font-size: 20px;
     text-decoration: none;
     font-weight: 500;
     margin-bottom: 30px;
@@ -180,7 +188,7 @@
     background: none;
     border: none;
     color: #6ecfb0;
-    font-size: 0.85rem;
+    font-size: 14px;
     cursor: pointer;
     padding: 0;
     text-decoration: underline;
@@ -194,12 +202,12 @@
 
 .hero-or {
     color: #999;
-    font-size: 0.85rem;
+    font-size: 14px;
 }
 
 .hero-footer {
     color: #555;
-    font-size: 0.75rem;
+    font-size: 12px;
     margin-top: auto;
     padding-top: 40px;
 }
@@ -212,7 +220,7 @@
     background: none;
     border: none;
     color: #6ecfb0;
-    font-size: 0.85rem;
+    font-size: 14px;
     cursor: pointer;
     padding: 0;
     text-decoration: underline;
@@ -227,6 +235,57 @@
     outline: none;
 }
 
+.hero-login-btn {
+    background: none;
+    border: 1px solid #6ecfb0;
+    color: #6ecfb0;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hero-login-btn:hover {
+    background: #6ecfb0;
+    color: #2d2d2d;
+}
+
+.hero-login-btn:focus {
+    outline: none;
+}
+
+.hero-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.hero-user-email {
+    color: #999;
+    font-size: 12px;
+}
+
+.hero-logout-btn {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.hero-logout-btn:hover {
+    color: #ff8e8e;
+}
+
+.hero-logout-btn:focus {
+    outline: none;
+}
+
 /* Mobile layout */
 @media (max-width: 480px) {
     .hero-wrapper {
@@ -237,6 +296,20 @@
     .hero-wrapper--compact {
         min-height: 100vh;
         padding: 0;
+    }
+
+    .hero-auth-corner {
+        top: 15px;
+        right: 15px;
+    }
+
+    .hero-login-btn {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .hero-user-email {
+        font-size: 11px;
     }
 
     .hero-card {
