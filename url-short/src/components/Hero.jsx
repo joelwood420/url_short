@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Hero.css";
 
-function Hero({ onViewMyLinks, showMyUrls }) {
+function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout }) {
     const [url, setUrl] = useState("");
     const [shortUrl, setShortUrl] = useState("");
     const [qrCode, setQrCode] = useState("");
@@ -12,15 +12,13 @@ function Hero({ onViewMyLinks, showMyUrls }) {
         setError("");
         setShortUrl(""); 
 
-        const sessionId = localStorage.getItem("session_id") || "";
-
         try {
-            const response = await fetch("http://127.0.0.1:5001/shorten", {
+            const response = await fetch("/shorten", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Session-ID": sessionId,
                 },
+                credentials: "include",
                 body: JSON.stringify({ url }),
             });
 
@@ -29,9 +27,6 @@ function Hero({ onViewMyLinks, showMyUrls }) {
             if (response.ok) {
                 setShortUrl(data.short_url);
                 setQrCode(data.qr_code);
-                if (data.session_id) {
-                    localStorage.setItem("session_id", data.session_id);
-                }
             } else {
                 setError(data.error || "Something went wrong");
             }
@@ -73,10 +68,26 @@ function Hero({ onViewMyLinks, showMyUrls }) {
 
     return (
         <div className={`hero-wrapper ${showMyUrls ? 'hero-wrapper--compact' : ''}`}>
+            {/* Top-right auth section */}
+            <div className="hero-auth-corner">
+                {currentUser ? (
+                    <div className="hero-user-info">
+                        <span className="hero-user-email">{currentUser}</span>
+                        <button className="hero-logout-btn" onClick={onLogout}>
+                            Logout
+                        </button>
+                    </div>
+                ) : (
+                    <button className="hero-login-btn" onClick={onShowLogin}>
+                        Login / Register
+                    </button>
+                )}
+            </div>
+            
             <div className={`hero-card ${shortUrl ? 'hero-card--has-result' : ''}`}>
                 <div className={`hero-left ${shortUrl ? 'hero-left--has-result' : ''}`}>
                     <h1 className="hero-logo">URL Short</h1>
-                    <p className="hero-subtitle">Generate a Short Url</p>
+                    <p className="hero-subtitle">Generate a Short Url & QR Code</p>
                     <form onSubmit={handleSubmit}>
                         <input
                             className="hero-input"
