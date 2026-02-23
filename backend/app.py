@@ -1,6 +1,5 @@
 from flask import Flask, redirect, request, jsonify, send_from_directory, session
 import requests
-from flask_cors import CORS
 import random
 import os
 import sqlite3
@@ -11,7 +10,6 @@ from user_auth import create_user, get_user_by_email, hash_password, check_passw
 
 app = Flask(__name__, static_folder='../url-short/dist', static_url_path='')
 app.secret_key = os.urandom(24)
-CORS(app, supports_credentials=True)
 
 
 DB_PATH = 'db/urls.db'
@@ -261,7 +259,7 @@ def delete_url(shortcode):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # First check if the user owns this URL
+    
     cursor.execute("""
         SELECT urls.id FROM urls 
         JOIN user_urls ON urls.id = user_urls.url_id 
@@ -273,7 +271,7 @@ def delete_url(shortcode):
         conn.close()
         return jsonify({"error": "URL not found or not owned by user"}), 404
     
-    # Delete the URL and its associations
+
     url_id = url_record[0]
     cursor.execute("DELETE FROM user_urls WHERE url_id = ?", (url_id,))
     cursor.execute("DELETE FROM urls WHERE id = ?", (url_id,))
