@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./Hero.css";
+import logo from "../assets/lnksy-high-resolution-logo-transparent.png";
 
 function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout }) {
     const [url, setUrl] = useState("");
@@ -86,8 +87,8 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
             
             <div className={`hero-card ${shortUrl ? 'hero-card--has-result' : ''}`}>
                 <div className={`hero-left ${shortUrl ? 'hero-left--has-result' : ''}`}>
-                    <h1 className="hero-logo">URL Short</h1>
-                    <p className="hero-subtitle">Generate a Short Url & QR Code</p>
+                    <img src={logo} alt="Linksy" className="hero-logo" />
+                    <p className="hero-subtitle">Share Smarter.</p>
                     <form onSubmit={handleSubmit}>
                         <input
                             className="hero-input"
