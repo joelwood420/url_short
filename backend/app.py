@@ -75,10 +75,11 @@ def create_short_url(shortcode):
 
 
 def is_valid_url(url):
+    user_agent = {'User-Agent': 'Mozilla/5.0'}
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=5, headers=user_agent)
         return response.status_code == 200
     except requests.exceptions.RequestException:
         return False
