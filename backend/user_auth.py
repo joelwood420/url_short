@@ -1,5 +1,4 @@
 import sqlite3
-import os
 import bcrypt
 
 DB_PATH = 'db/urls.db'
