@@ -1,11 +1,18 @@
 import sqlite3
 import bcrypt
+import sys
+import os
 
-DB_PATH = 'db/urls.db'
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+def get_connection():
+    import app as app_module
+    return app_module.get_db_connection()
 
 
 def execute_query(query, params=(), fetchone=False, commit=False):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(query, params)
     result = None
@@ -13,7 +20,6 @@ def execute_query(query, params=(), fetchone=False, commit=False):
         result = cursor.fetchone()
     if commit:
         conn.commit()
-    conn.close()
     return result
 
 

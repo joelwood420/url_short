@@ -20,26 +20,21 @@ SHORTCODE_LENGTH = 3
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+conn.row_factory = sqlite3.Row
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
     return conn
-
-
 
 def generate_shortcode():
         return "".join(random.choice(CHARS) for _ in range(SHORTCODE_LENGTH))
     
-
 def execute_query(query, params=()):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(query, params)
     result = cursor.fetchone() 
-    conn.close()
     return result
-
 
 
 def is_shortcode_unique(generated_shortcode):
@@ -56,7 +51,6 @@ def save_url(url, shortcode, user_id=None):
         url_id = cursor.lastrowid
         cursor.execute("INSERT INTO user_urls (user_id, url_id) VALUES (?, ?)", (user_id, url_id))
     conn.commit()
-    conn.close()
 
 
 def get_shortcode_for_url(url):
