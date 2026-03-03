@@ -17,6 +17,13 @@ CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 SHORTCODE_LENGTH = 3
 
 
+def initialize_db():
+    if not os.path.exists(DB_PATH):
+        with sqlite3.connect(DB_PATH) as conn:
+            with open('db/schema.sql', 'r') as f:
+                conn.executescript(f.read())
+
+
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
@@ -280,5 +287,6 @@ def delete_url(shortcode):
 
 
 if __name__ == '__main__':
+    initialize_db()
     app.run(debug=True, port=5000)
 
