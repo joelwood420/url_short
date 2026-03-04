@@ -1,0 +1,15 @@
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.DS_Store
+**/.git/
+**/.vscode/
+**/node_modules/
+url-short/dist/
+backend/db/urls.db
+db/urls.db
+*.db
+requirements-dev.txt
+conftest.py
+pytest.ini
+backend/tests/

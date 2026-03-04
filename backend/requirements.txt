@@ -3,3 +3,5 @@ flask-cors
 requests
 bcrypt
 qrcode[pil]
+beautifulsoup4
+gunicorn

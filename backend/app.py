@@ -9,12 +9,18 @@ import base64
 from bs4 import BeautifulSoup
 from user_auth import create_user, get_user_by_email, hash_password, check_password
 
-app = Flask(__name__, static_folder='../url-short/dist', static_url_path='')
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+_docker_static = os.path.join(BASE_DIR, 'url-short', 'dist')
+_local_static = os.path.normpath(os.path.join(BASE_DIR, '..', 'url-short', 'dist'))
+STATIC_DIR = _docker_static if os.path.isdir(_docker_static) else _local_static
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
+app.secret_key = os.environ.get('secret_key')
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 
-DB_PATH = 'db/urls.db'
+DB_PATH = os.path.join(BASE_DIR, 'db', 'urls.db')
 CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 SHORTCODE_LENGTH = 3
 
@@ -22,7 +28,7 @@ SHORTCODE_LENGTH = 3
 def initialize_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as c:
-        with open('db/schema.sql', 'r') as f:
+        with open(os.path.join(BASE_DIR, 'schema.sql'), 'r') as f:
             c.executescript(f.read())
 
 
