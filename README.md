@@ -35,9 +35,7 @@ A full-stack URL shortener with user accounts, click tracking, and QR code gener
 
 ![web main](screenshots/hero.png)
 
-![mobile landing page](screenshots/mobile.png)
-
-![Mobile results](screenshots/mobile-2.png)
+<img src="screenshots/mobile.png" width="300" alt="mobile landing page" /> <img src="screenshots/mobile-2.png" width="300" alt="mobile results" />
 
 ---
 
