@@ -41,10 +41,12 @@ instance/
 # Node / frontend (vite)
 url-short/node_modules/
 url-short/dist/
+url-short/dist-ssr/
 url-short/.vite/
 url-short/.cache/
 url-short/build/
 url-short/.env
+*.local
 
 # IDEs and editors
 .vscode/
