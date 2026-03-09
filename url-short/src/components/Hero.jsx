@@ -74,7 +74,13 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
                 {currentUser ? (
                     <div className="hero-user-info">
                         <span className="hero-user-email">{currentUser}</span>
-                        <button className="hero-logout-btn" onClick={onLogout}>
+                        <button className="hero-logout-btn" onClick={() => {
+                            setUrl("");
+                            setShortUrl("");
+                            setQrCode("");
+                            setError("");
+                            onLogout();
+                        }}>
                             Logout
                         </button>
                     </div>

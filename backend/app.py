@@ -57,11 +57,16 @@ def is_shortcode_unique(generated_shortcode):
 def save_url(url, shortcode, user_id=None, title=None):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO urls (original_url, short_code, title) VALUES (?, ?, ?)", (url, shortcode, title))
-    if user_id:
-        url_id = cursor.lastrowid
-        cursor.execute("INSERT INTO user_urls (user_id, url_id) VALUES (?, ?)", (user_id, url_id))
-    conn.commit()
+    try:
+        cursor.execute("BEGIN")
+        cursor.execute("INSERT INTO urls (original_url, short_code, title) VALUES (?, ?, ?)", (url, shortcode, title))
+        if user_id:
+            url_id = cursor.lastrowid
+            cursor.execute("INSERT INTO user_urls (user_id, url_id) VALUES (?, ?)", (user_id, url_id))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def get_shortcode_for_url(url):
@@ -91,7 +96,36 @@ def increment_click_count(shortcode):
     cursor = conn.cursor()
     cursor.execute("UPDATE urls SET click_count = click_count + 1 WHERE short_code = ?", (shortcode,))
     conn.commit()
-    
+
+
+def get_urls_for_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT urls.original_url, urls.short_code, urls.click_count, urls.title
+        FROM urls
+        JOIN user_urls ON urls.id = user_urls.url_id
+        WHERE user_urls.user_id = ?
+    """, (user_id,))
+    return cursor.fetchall()
+
+
+def delete_url_by_id(url_id, user_id):
+    """Delete a URL and its user association. Returns True if a record was deleted."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT urls.id FROM urls
+        JOIN user_urls ON urls.id = user_urls.url_id
+        WHERE urls.id = ? AND user_urls.user_id = ?
+    """, (url_id, user_id))
+    if not cursor.fetchone():
+        return False
+    cursor.execute("DELETE FROM user_urls WHERE url_id = ?", (url_id,))
+    cursor.execute("DELETE FROM urls WHERE id = ?", (url_id,))
+    conn.commit()
+    return True
+
 
 
 def create_short_url(shortcode):
@@ -330,21 +364,11 @@ def handle_redirect(shortcode):
 
 @app.route('/my-urls', methods=['GET'])
 def my_urls():
-    
     user = get_logged_in_user()
     if not user:
         return jsonify({"error": "Login to view your URLs"}), 401
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT urls.original_url, urls.short_code, urls.click_count, urls.title
-        FROM urls 
-        JOIN user_urls ON urls.id = user_urls.url_id 
-        WHERE user_urls.user_id = ?
-    """, (user[0],))
-    urls = cursor.fetchall()
-
+    urls = get_urls_for_user(user[0])
     url_list = [{"original_url": row["original_url"], "short_code": row["short_code"], "click_count": row["click_count"], "title": row["title"]} for row in urls]
     return jsonify({"user_id": user[0], "urls": url_list}), 200
 
@@ -370,25 +394,18 @@ def delete_url(shortcode):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    
     cursor.execute("""
-        SELECT urls.id FROM urls 
-        JOIN user_urls ON urls.id = user_urls.url_id 
+        SELECT urls.id FROM urls
+        JOIN user_urls ON urls.id = user_urls.url_id
         WHERE urls.short_code = ? AND user_urls.user_id = ?
     """, (shortcode, user[0]))
-    
     url_record = cursor.fetchone()
     if not url_record:
         return jsonify({"error": "URL not found or not owned by user"}), 404
-    
 
-    url_id = url_record[0]
-    cursor.execute("DELETE FROM user_urls WHERE url_id = ?", (url_id,))
-    cursor.execute("DELETE FROM urls WHERE id = ?", (url_id,))
-    
-    conn.commit()
-    
+    if not delete_url_by_id(url_record["id"], user[0]):
+        return jsonify({"error": "URL not found or not owned by user"}), 404
+
     return jsonify({"message": "URL deleted successfully"}), 200
 
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./CreateUser.css";
+import { login as loginUser, register as createUser } from "../api";
 
 function CreateUser({ onClose, onLoginSuccess }) {
     const [isLogin, setIsLogin] = useState(true);
@@ -26,29 +27,16 @@ function CreateUser({ onClose, onLoginSuccess }) {
             return;
         }
 
-        const endpoint = isLogin ? "/login" : "/register";
-
         try {
-            const response = await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify({ email, password }),
-            });
+            const data = isLogin
+                ? await loginUser(email, password)
+                : await createUser(email, password);
 
-            const data = await response.json();
-
-            if (response.ok) {
-                onLoginSuccess(data.email);
-                onClose();
-            } else {
-                setError(data.error || "Something went wrong");
-            }
+            onLoginSuccess(data.email);
+            onClose();
         } catch (err) {
             console.error("Error:", err);
-            setError("Failed to connect to server");
+            setError(err.message || "Failed to connect to server");
         } finally {
             setLoading(false);
         }
