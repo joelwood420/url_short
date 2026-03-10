@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import Hero from './components/Hero'
 import MyUrls from './components/MyUrls'
 import Create_User from './components/CreateUser'
-import { useSessionCheck } from './hooks/useSessionCheck'
+import { useAuth } from './hooks/useAuth'
 import { useScrollToMyUrls } from './hooks/useScrollToMyUrls'
 import './App.css'
 
@@ -11,30 +11,8 @@ function App() {
   const [showLogin, setShowLogin] = useState(false)
   const myUrlsRef = useRef(null)
 
-  const { currentUser, setCurrentUser } = useSessionCheck()
+  const { currentUser, handleLoginSuccess, handleLogout } = useAuth(setShowMyUrls, setShowLogin)
   useScrollToMyUrls(showMyUrls, myUrlsRef)
-
-  const handleLoginSuccess = (email) => {
-    setCurrentUser(email)
-    setShowLogin(false)
-    if (showMyUrls) {
-      setShowMyUrls(false)
-      setTimeout(() => setShowMyUrls(true), 100)
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
-      setCurrentUser(null)
-      setShowMyUrls(false)
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
-  }
 
   return (
     <div className="App">
