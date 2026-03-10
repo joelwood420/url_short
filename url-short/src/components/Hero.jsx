@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./Hero.css";
 import logo from "../assets/lnksy-high-resolution-logo-transparent.png";
+import { saveQrCode, copyQrCode } from "../utils/qrUtils";
 
 function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout }) {
     const [url, setUrl] = useState("");
@@ -42,19 +43,12 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
     };
 
     const handleSaveQr = () => {
-        const link = document.createElement("a");
-        link.href = `data:image/png;base64,${qrCode}`;
-        link.download = "qrcode.png";
-        link.click();
+        saveQrCode(qrCode);
     };
 
     const handleCopyQr = async () => {
         try {
-            const res = await fetch(`data:image/png;base64,${qrCode}`);
-            const blob = await res.blob();
-            await navigator.clipboard.write([
-                new ClipboardItem({ "image/png": blob }),
-            ]);
+            await copyQrCode(qrCode);
         } catch (err) {
             console.error("Failed to copy QR code:", err);
         }

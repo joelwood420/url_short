@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./MyUrls.css";
 import { getMyUrls, deleteUrl, getQrCode } from "../api";
+import { saveQrCode, copyQrCode } from "../utils/qrUtils";
 
 function MyUrls() {
     const [urls, setUrls] = useState([]);
@@ -66,23 +67,14 @@ function MyUrls() {
     const handleSaveQr = (shortCode) => {
         const qrCode = qrData[shortCode];
         if (!qrCode) return;
-        
-        const link = document.createElement("a");
-        link.href = `data:image/png;base64,${qrCode}`;
-        link.download = `qr-${shortCode}.png`;
-        link.click();
+        saveQrCode(qrCode, `qr-${shortCode}.png`);
     };
 
     const handleCopyQr = async (shortCode) => {
         const qrCode = qrData[shortCode];
         if (!qrCode) return;
-        
         try {
-            const res = await fetch(`data:image/png;base64,${qrCode}`);
-            const blob = await res.blob();
-            await navigator.clipboard.write([
-                new ClipboardItem({ "image/png": blob }),
-            ]);
+            await copyQrCode(qrCode);
         } catch (err) {
             console.error("Failed to copy QR code:", err);
         }
