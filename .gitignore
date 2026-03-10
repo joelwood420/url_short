@@ -39,13 +39,13 @@ instance/
 .DS_Store
 
 # Node / frontend (vite)
-url-short/node_modules/
-url-short/dist/
-url-short/dist-ssr/
-url-short/.vite/
-url-short/.cache/
-url-short/build/
-url-short/.env
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/.cache/
+frontend/build/
+frontend/.env
 *.local
 
 # IDEs and editors

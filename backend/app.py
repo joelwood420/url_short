@@ -19,8 +19,8 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 GOOGLE_SAFE_BROWSING_API_KEY = os.environ.get('GOOGLE_SAFE_BROWSING_API_KEY')
 
-_docker_static = os.path.join(BASE_DIR, 'url-short', 'dist')
-_local_static = os.path.normpath(os.path.join(BASE_DIR, '..', 'url-short', 'dist'))
+_docker_static = os.path.join(BASE_DIR, 'frontend', 'dist')
+_local_static = os.path.normpath(os.path.join(BASE_DIR, '..', 'frontend', 'dist'))
 STATIC_DIR = _docker_static if os.path.isdir(_docker_static) else _local_static
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')

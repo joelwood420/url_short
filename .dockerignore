@@ -5,7 +5,7 @@
 **/.git/
 **/.vscode/
 **/node_modules/
-url-short/dist/
+frontend/dist/
 backend/db/urls.db
 db/urls.db
 *.db

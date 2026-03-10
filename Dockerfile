@@ -1,12 +1,12 @@
 # ── Stage 1: Build the React frontend ──────────────────────────────────────────
 FROM node:20-alpine AS frontend-build
 
-WORKDIR /app/url-short
+WORKDIR /app/frontend
 
-COPY url-short/package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
 
-COPY url-short/ ./
+COPY frontend/ ./
 RUN npm run build
 
 
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 COPY backend/ ./
 
 # Copy the built React app into the location Flask expects
-COPY --from=frontend-build /app/url-short/dist ./url-short/dist
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 # Create the db directory (volume will be mounted here in production)
 RUN mkdir -p db

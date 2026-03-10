@@ -56,13 +56,13 @@ cd url_short
 ### 2. Build the frontend
 
 ```bash
-cd url-short
+cd frontend
 npm install
 npm run build
 cd ..
 ```
 
-This generates the `url-short/dist/` folder that Flask will serve.
+This generates the `frontend/dist/` folder that Flask will serve.
 
 ### 3. Backend
 
@@ -87,7 +87,7 @@ python3 app.py
 
 Open `http://localhost:5001` in your browser — Flask serves both the API and the React frontend.
 
-> **Frontend development:** If you're making changes to the React code, run `npm run dev` in the `url-short/` directory for hot reloading on `http://localhost:5173`. Vite proxies all API calls back to the Flask server on port 5001.
+> **Frontend development:** If you're making changes to the React code, run `npm run dev` in the `frontend/` directory for hot reloading on `http://localhost:5173`. Vite proxies all API calls back to the Flask server on port 5001.
 
 ### 4. Run tests
 
@@ -111,7 +111,7 @@ url_short/
 │   └── tests/
 │       ├── fixtures.py   # pytest fixtures
 │       └── test_app.py   # Test suite
-├── url-short/            # React + Vite frontend
+├── frontend/            # React + Vite frontend
 │   └── src/
 │       ├── api.js        # All fetch calls in one place
 │       └── components/
@@ -133,7 +133,7 @@ The built React frontend is served as static files by Flask.
 
 ```bash
 # Build frontend first
-cd url-short && npm run build
+cd frontend && npm run build
 
 # Deploy
 fly deploy
