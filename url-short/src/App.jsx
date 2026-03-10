@@ -1,39 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Hero from './components/Hero'
 import MyUrls from './components/MyUrls'
 import Create_User from './components/CreateUser'
+import { useSessionCheck } from './hooks/useSessionCheck'
+import { useScrollToMyUrls } from './hooks/useScrollToMyUrls'
 import './App.css'
 
 function App() {
   const [showMyUrls, setShowMyUrls] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
-  const [currentUser, setCurrentUser] = useState(null)
   const myUrlsRef = useRef(null)
 
-  useEffect(() => {
-    // Check if user is already logged in on page load
-    fetch('/me', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.email) {
-          setCurrentUser(data.email)
-        }
-      })
-      .catch(err => console.error('Session check failed:', err))
-  }, [])
-
-  useEffect(() => {
-    if (showMyUrls && myUrlsRef.current) {
-      if (window.innerWidth < 768) {
-        setTimeout(() => {
-          myUrlsRef.current.scrollIntoView({ 
-            behavior: 'smooth',
-            block: 'start'
-          })
-        }, 100) 
-      }
-    }
-  }, [showMyUrls])
+  const { currentUser, setCurrentUser } = useSessionCheck()
+  useScrollToMyUrls(showMyUrls, myUrlsRef)
 
   const handleLoginSuccess = (email) => {
     setCurrentUser(email)
