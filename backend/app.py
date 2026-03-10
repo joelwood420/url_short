@@ -41,12 +41,17 @@ SHORTCODE_LENGTH = 3
 def generate_shortcode():
         return "".join(random.choice(CHARS) for _ in range(SHORTCODE_LENGTH))
     
-def execute_query(query, params=()):
+def execute_query(query, params=(), commit=False, fetchone=True, fetchall=False):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(query, params)
-    result = cursor.fetchone() 
-    return result
+    if commit:
+        conn.commit()
+    if fetchall:
+        return cursor.fetchall()
+    if fetchone:
+        return cursor.fetchone()
+    return cursor
 
 
 def save_url(url, shortcode, user_id=None, title=None):
@@ -65,60 +70,51 @@ def save_url(url, shortcode, user_id=None, title=None):
 
 
 def get_shortcode_for_url(url):
-    result = execute_query("SELECT short_code FROM urls WHERE original_url = ?", (url,))
+    result = execute_query("SELECT short_code FROM urls WHERE original_url = ?", (url,), fetchone=True)
     return result['short_code'] if result else None
 
 
 def get_shortcode_for_user_url(url, user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
+    result = execute_query("""
         SELECT urls.short_code FROM urls
         JOIN user_urls ON urls.id = user_urls.url_id
         WHERE urls.original_url = ? AND user_urls.user_id = ?
-    """, (url, user_id))
-    result = cursor.fetchone()
+    """, (url, user_id), fetchone=True)
     return result['short_code'] if result else None
 
 
 def get_url_by_shortcode(shortcode):
-    result = execute_query("SELECT original_url FROM urls WHERE short_code = ?", (shortcode,))
+    result = execute_query("SELECT original_url FROM urls WHERE short_code = ?", (shortcode,), fetchone=True)
     return result['original_url'] if result else None
 
 
 def increment_click_count(shortcode):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE urls SET click_count = click_count + 1 WHERE short_code = ?", (shortcode,))
-    conn.commit()
+    execute_query(
+        "UPDATE urls SET click_count = click_count + 1 WHERE short_code = ?",
+        (shortcode,), commit=True, fetchone=False
+    )
 
 
 def get_urls_for_user(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
+    return execute_query("""
         SELECT urls.original_url, urls.short_code, urls.click_count, urls.title
         FROM urls
         JOIN user_urls ON urls.id = user_urls.url_id
         WHERE user_urls.user_id = ?
-    """, (user_id,))
-    return cursor.fetchall()
+    """, (user_id,), fetchall=True)
 
 
 def delete_url_by_id(url_id, user_id):
     """Delete a URL and its user association. Returns True if a record was deleted."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
+    result = execute_query("""
         SELECT urls.id FROM urls
         JOIN user_urls ON urls.id = user_urls.url_id
         WHERE urls.id = ? AND user_urls.user_id = ?
-    """, (url_id, user_id))
-    if not cursor.fetchone():
+    """, (url_id, user_id), fetchone=True)
+    if not result:
         return False
-    cursor.execute("DELETE FROM user_urls WHERE url_id = ?", (url_id,))
-    cursor.execute("DELETE FROM urls WHERE id = ?", (url_id,))
-    conn.commit()
+    execute_query("DELETE FROM user_urls WHERE url_id = ?", (url_id,), commit=True, fetchone=False)
+    execute_query("DELETE FROM urls WHERE id = ?", (url_id,), commit=True, fetchone=False)
     return True
 
 
@@ -388,14 +384,11 @@ def delete_url(shortcode):
     if not user:
         return jsonify({"error": "Not logged in"}), 401
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
+    url_record = execute_query("""
         SELECT urls.id FROM urls
         JOIN user_urls ON urls.id = user_urls.url_id
         WHERE urls.short_code = ? AND user_urls.user_id = ?
-    """, (shortcode, user[0]))
-    url_record = cursor.fetchone()
+    """, (shortcode, user[0]), fetchone=True)
     if not url_record:
         return jsonify({"error": "URL not found or not owned by user"}), 404
 
