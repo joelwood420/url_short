@@ -6,6 +6,7 @@ import sqlite3
 import qrcode
 import io
 import base64
+import re
 from db import get_db_connection, initialize_db, close_db, DB_PATH, execute_query
 from user_auth import create_user, get_user_by_email, hash_password, check_password
 from flask_limiter import Limiter
@@ -56,6 +57,15 @@ app.teardown_appcontext(close_db)
 
 CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 SHORTCODE_LENGTH = 5
+
+
+def is_valid_email(email):
+    """Validate email format using regex."""
+    if not email or len(email) > 254:
+        return False
+    # Basic RFC 5322 compliant email regex
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
 
 
 def generate_shortcode():
@@ -166,6 +176,9 @@ def register():
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
 
+    if not is_valid_email(email):
+        return jsonify({"error": "Please enter a valid email address"}), 400
+
     if len(password) < 8:
         return jsonify({"error": "Password must be at least 8 characters"}), 400
 
@@ -188,6 +201,9 @@ def login():
 
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
+
+    if not is_valid_email(email):
+        return jsonify({"error": "Please enter a valid email address"}), 400
 
     user = get_user_by_email(email)
     if not user or not check_password(password, user[2]):
