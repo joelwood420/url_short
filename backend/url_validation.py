@@ -86,7 +86,6 @@ def validate_url_and_get_title(url):
             response = requests.get(url, timeout=3, headers=USER_AGENT, allow_redirects=False)
         finally:
             socket.getaddrinfo = original_getaddrinfo
-            #
 
         if response.is_redirect:
             redirect_url = response.headers.get('Location', '')
