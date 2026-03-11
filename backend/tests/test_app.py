@@ -1,5 +1,6 @@
 import sys
 import os
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.tests.fixtures import client, test_db
@@ -8,7 +9,7 @@ import app
 
 def test_generate_shortcode():
     gen_shortcode = app.generate_shortcode()
-    assert len(gen_shortcode) == 3
+    assert len(gen_shortcode) == 5
     assert gen_shortcode.isalnum()
 
 
@@ -19,7 +20,8 @@ def test_existing_shortcode(test_db):
 
 
 
-def test_shorten_url(client):
+def test_shorten_url(client, mocker):
+    mocker.patch("app.validate_url_and_get_title", return_value=(True, "YouTube", None))
     response = client.post('/shorten', json={"url": "youtube.com"})
     assert response.status_code == 201
 
@@ -70,7 +72,8 @@ def test_logout_user(client):
     assert data["message"] == "Logged out"
 
 
-def test_redirect(client):
+def test_redirect(client, mocker):
+    mocker.patch("app.validate_url_and_get_title", return_value=(True, "YouTube", None))
     shorten_response = client.post('/shorten', json={"url": "youtube.com"})
     short_url = shorten_response.get_json()["short_url"]
     shortcode = short_url.split("/")[-1]
@@ -99,8 +102,8 @@ def test_missing_url(client, test_db):
     assert data["error"] == "No URL provided"
 
 
-def test_handle_user_redirect_success(client, test_db):
-   
+def test_handle_user_redirect_success(client, test_db, mocker):
+    mocker.patch("app.validate_url_and_get_title", return_value=(True, "YouTube", None))
     client.post('/register', json={"email": "testuser@test.com", "password": "testpass"})
     client.post('/login', json={"email": "testuser@test.com", "password": "testpass"})
 

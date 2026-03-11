@@ -1,46 +1,45 @@
 from flask import Flask, redirect, request, jsonify, send_from_directory, session
 from dotenv import load_dotenv
-import requests
-import random
+import secrets
 import os
 import sqlite3
 import qrcode
 import io
 import base64
-import ipaddress
-from urllib.parse import urlparse
-import socket
-from bs4 import BeautifulSoup
 from db import get_db_connection, initialize_db, close_db, DB_PATH, execute_query
 from user_auth import create_user, get_user_by_email, hash_password, check_password
+from flask_limiter import Limiter
+from url_validation import validate_url_and_get_title
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
-
-GOOGLE_SAFE_BROWSING_API_KEY = os.environ.get('GOOGLE_SAFE_BROWSING_API_KEY')
 
 _docker_static = os.path.join(BASE_DIR, 'frontend', 'dist')
 _local_static = os.path.normpath(os.path.join(BASE_DIR, '..', 'frontend', 'dist'))
 STATIC_DIR = _docker_static if os.path.isdir(_docker_static) else _local_static
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
-app.secret_key = os.environ.get('secret_key')
+app.secret_key = os.environ.get('SECRET_KEY')
 if not app.secret_key:
-    raise RuntimeError("secret_key environment variable is not set. Add it to backend/.env")
+    raise RuntimeError("SECRET_KEY environment variable is not set. Add it to backend/.env")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['SESSION_COOKIE_HTTPONLY'] = True   
+app.config['SESSION_COOKIE_SECURE'] = True     
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
 
+limiter = Limiter(app, default_limits=["100 per day", "10 per minute"])
 
 initialize_db()
 
 app.teardown_appcontext(close_db)
 
 CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-SHORTCODE_LENGTH = 3
+SHORTCODE_LENGTH = 5
 
 
 def generate_shortcode():
-        return "".join(random.choice(CHARS) for _ in range(SHORTCODE_LENGTH))
-    
+        return "".join(secrets.choice(CHARS) for _ in range(SHORTCODE_LENGTH))
+
 def save_url(url, shortcode, user_id=None, title=None):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -110,69 +109,6 @@ def create_short_url(shortcode):
     return f"{request.host_url}{shortcode}"
 
 
-def is_safe_url(url):
-    try:
-        hostname = urlparse(url).hostname
-        if not hostname:
-            return False
-        resolved_ip = socket.gethostbyname(hostname)
-        ip = ipaddress.ip_address(resolved_ip)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-            return False
-        return True
-    except Exception:
-        return False
-
-
-USER_AGENT = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-
-SAFE_BROWSING_THREAT_TYPES = [
-    "MALWARE",
-    "SOCIAL_ENGINEERING",
-    "UNWANTED_SOFTWARE",
-    "POTENTIALLY_HARMFUL_APPLICATION",
-]
-
-def is_safe_browsing_url(url):
-    if not GOOGLE_SAFE_BROWSING_API_KEY:
-        return True  
-    try:
-        resp = requests.post(
-            "https://safebrowsing.googleapis.com/v4/threatMatches:find",
-            params={"key": GOOGLE_SAFE_BROWSING_API_KEY},
-            json={
-                "client": {"clientId": "url-shortener", "clientVersion": "1.0"},
-                "threatInfo": {
-                    "threatTypes": SAFE_BROWSING_THREAT_TYPES,
-                    "platformTypes": ["ANY_PLATFORM"],
-                    "threatEntryTypes": ["URL"],
-                    "threatEntries": [{"url": url}],
-                },
-            },
-            timeout=5,
-        )
-        return resp.status_code != 200 or resp.json() == {}
-    except requests.exceptions.RequestException:
-        return True  
-
-
-def validate_url_and_get_title(url):
-    if not is_safe_url(url):
-        return False, None
-    if not is_safe_browsing_url(url):
-        return False, None
-    try:
-        response = requests.get(url, timeout=3, headers=USER_AGENT, allow_redirects=True)
-        if response.status_code >= 500:
-            return False, None
-        soup = BeautifulSoup(response.text, 'html.parser')
-        title_tag = soup.find('title')
-        title = title_tag.string.strip() if title_tag and title_tag.string else None
-        return True, title
-    except requests.exceptions.RequestException:
-        return False, None
-
-
 def get_logged_in_user():
     email = session.get('email')
     if not email:
@@ -200,6 +136,7 @@ def render_react():
 
 
 @app.route('/register', methods=['POST'])
+@limiter.limit("3 per minute")
 def register():
     data = request.get_json()
     email = data.get('email')
@@ -222,6 +159,7 @@ def register():
 
 
 @app.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     data = request.get_json()
     email = data.get('email')
@@ -263,8 +201,12 @@ def shorten_url():
     if not original_url.startswith(('http://', 'https://')):
         original_url = 'https://' + original_url
 
-    valid, title = validate_url_and_get_title(original_url)
+    valid, title, error_reason = validate_url_and_get_title(original_url)
     if not valid:
+        if error_reason == "dangerous":
+            return jsonify({"error": "This URL has been flagged as dangerous"}), 400
+        if error_reason == "service_unavailable":
+            return jsonify({"error": "URL safety check is unavailable, please try again later"}), 503
         return jsonify({"error": "Please input a valid URL"}), 400
 
     user = get_logged_in_user()
