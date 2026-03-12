@@ -1,4 +1,14 @@
 
+let csrfToken = null;
+
+async function getCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const response = await fetch("/csrf-token", { credentials: "include" });
+    const data = await response.json();
+    csrfToken = data.csrf_token;
+    return csrfToken;
+}
+
 export async function getMyUrls() {
     const response = await fetch("/my-urls", {
         credentials: "include",
@@ -18,6 +28,9 @@ export async function getMyUrls() {
 export async function deleteUrl(shortCode) {
     const response = await fetch(`/delete/${shortCode}`, {
         method: "DELETE",
+        headers: {
+            "X-CSRF-Token": await getCsrfToken()
+        },
         credentials: "include",
     });
     if (!response.ok) {
@@ -42,6 +55,7 @@ export async function shortenUrl(url) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-CSRF-Token": await getCsrfToken()
         },
         credentials: "include",
         body: JSON.stringify({ url }),
@@ -67,7 +81,10 @@ export async function getMe() {
 export async function login(email, password) {
     const response = await fetch("/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": await getCsrfToken()
+        },
         credentials: "include",
         body: JSON.stringify({ email, password }),
     });
@@ -82,7 +99,10 @@ export async function login(email, password) {
 export async function register(email, password) {
     const response = await fetch("/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": await getCsrfToken()
+        },
         credentials: "include",
         body: JSON.stringify({ email, password }),
     });
@@ -97,6 +117,9 @@ export async function register(email, password) {
 export async function logout() {
     const response = await fetch("/logout", {
         method: "POST",
+        headers: {
+            "X-CSRF-Token": await getCsrfToken()
+        },
         credentials: "include",
     });
     if (!response.ok) {

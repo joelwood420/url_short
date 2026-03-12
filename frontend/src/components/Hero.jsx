@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./Hero.css";
 import logo from "../assets/lnksy-high-resolution-logo-transparent.png";
 import { saveQrCode, copyQrCode } from "../utils/qrUtils";
+import { shortenUrl } from "../api";
 
 function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout }) {
     const [url, setUrl] = useState("");
@@ -15,26 +16,12 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
         setShortUrl(""); 
 
         try {
-            const response = await fetch("/shorten", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify({ url }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setShortUrl(data.short_url);
-                setQrCode(data.qr_code);
-            } else {
-                setError(data.error || "Something went wrong");
-            }
+            const data = await shortenUrl(url);
+            setShortUrl(data.short_url);
+            setQrCode(data.qr_code);
         } catch (err) {
             console.error("Error:", err);
-            setError("Failed to connect to the server");
+            setError(err.message || "Failed to connect to the server");
         }
     };
 

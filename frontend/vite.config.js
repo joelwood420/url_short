@@ -13,6 +13,8 @@ export default defineConfig({
       '/my-urls': 'http://localhost:5001',
       '/qr': 'http://localhost:5001',
       '/delete': 'http://localhost:5001',
+      '/csrf-token': 'http://localhost:5001',
+      '/me': 'http://localhost:5001',
     },
   },
 })

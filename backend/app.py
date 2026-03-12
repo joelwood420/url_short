@@ -1,4 +1,5 @@
 from flask import Flask, redirect, request, jsonify, send_from_directory, session
+from flask_wtf.csrf import generate_csrf
 from dotenv import load_dotenv
 import secrets
 import os
@@ -11,6 +12,7 @@ from user_auth import create_user, get_user_by_email, hash_password, check_passw
 from flask_limiter import Limiter
 from flask_talisman import Talisman
 from url_validation import validate_url_and_get_title
+from flask_wtf import CSRFProtect
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
@@ -31,8 +33,10 @@ if len(app.secret_key) < 32:
     )
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['SESSION_COOKIE_HTTPONLY'] = True   
-app.config['SESSION_COOKIE_SECURE'] = True     
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_TIME_LIMIT'] = None          # tokens don't expire
+app.config['WTF_CSRF_HEADERS'] = ['X-CSRF-Token'] # accept our custom header
 
 Talisman(
     app,
@@ -49,6 +53,8 @@ Talisman(
 )
 
 limiter = Limiter(app, default_limits=["100 per day", "10 per minute"])
+
+csrf = CSRFProtect(app)
 
 initialize_db()
 
@@ -147,6 +153,15 @@ def generate_qr_code(short_url):
     buffer.seek(0)
     return base64.b64encode(buffer.getvalue()).decode('utf-8') # Return the QR code as string of bytes
 
+
+
+@app.route('/csrf-token', methods=['GET'])
+def get_csrf_token():
+    token = generate_csrf()
+    response = jsonify({"csrf_token": token})
+    is_prod = os.environ.get('FLASK_ENV') == 'production'
+    response.set_cookie('csrf_token', token, samesite='Lax', secure=is_prod, httponly=False)
+    return response
 
 
 @app.route('/', methods=['GET'])
