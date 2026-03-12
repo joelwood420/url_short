@@ -6,6 +6,7 @@ import { shortenUrl } from "../api";
 
 function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout }) {
     const [url, setUrl] = useState("");
+    const [title, setTitle] = useState("");
     const [shortUrl, setShortUrl] = useState("");
     const [qrCode, setQrCode] = useState("");
     const [error, setError] = useState("");
@@ -16,7 +17,7 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
         setShortUrl(""); 
 
         try {
-            const data = await shortenUrl(url);
+            const data = await shortenUrl(url, title);
             setShortUrl(data.short_url);
             setQrCode(data.qr_code);
         } catch (err) {
@@ -41,11 +42,16 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
         }
     };
 
-    const handleCreateAnother = () => {
+    const handleReset = () => {
         setUrl("");
+        setTitle("");
         setShortUrl("");
         setQrCode("");
         setError("");
+    };
+
+    const handleCreateAnother = () => {
+        handleReset();
     };
 
     return (
@@ -56,10 +62,7 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
                     <div className="hero-user-info">
                         <span className="hero-user-email">{currentUser}</span>
                         <button className="hero-logout-btn" onClick={() => {
-                            setUrl("");
-                            setShortUrl("");
-                            setQrCode("");
-                            setError("");
+                            handleReset();
                             onLogout();
                         }}>
                             Logout
@@ -84,6 +87,16 @@ function Hero({ onViewMyLinks, showMyUrls, onShowLogin, currentUser, onLogout })
                             onChange={(e) => setUrl(e.target.value)}
                             placeholder="ENTER A URL"
                         />
+                        {currentUser && (
+                            <input
+                                className="hero-input hero-input--title"
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="ADD A TITLE (OPTIONAL)"
+                                maxLength={100}
+                            />
+                        )}
                         <button className="hero-button" type="submit">CREATE</button>
                     </form>
                     {error && <p className="hero-error">{error}</p>}

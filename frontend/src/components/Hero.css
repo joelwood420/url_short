@@ -98,6 +98,16 @@
     border-color: #6ecfb0;
 }
 
+.hero-input--title {
+    margin-top: -10px;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+.hero-input--title::placeholder {
+    letter-spacing: 1px;
+}
+
 .hero-button {
     width: 100%;
     padding: 14px;

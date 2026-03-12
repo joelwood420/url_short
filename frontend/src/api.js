@@ -50,7 +50,7 @@ export async function getQrCode(shortCode) {
 }
 
 
-export async function shortenUrl(url) {
+export async function shortenUrl(url, title = "") {
     const response = await fetch("/shorten", {
         method: "POST",
         headers: {
@@ -58,7 +58,7 @@ export async function shortenUrl(url) {
             "X-CSRF-Token": await getCsrfToken()
         },
         credentials: "include",
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, title }),
     });
     const data = await response.json();
     if (!response.ok) {

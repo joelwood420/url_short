@@ -230,6 +230,7 @@ def logout():
 def shorten_url():
     data = request.get_json()
     original_url = data.get('url')
+    custom_title = data.get('title', '').strip() if data.get('title') else None
 
     if not original_url:
         return jsonify({"error": "No URL provided"}), 400
@@ -262,7 +263,7 @@ def shorten_url():
     while True:
         shortcode = generate_shortcode()
         try:
-            save_url(original_url, shortcode, user[0] if user else None, title)
+            save_url(original_url, shortcode, user[0] if user else None, custom_title or title)
             break
         except sqlite3.IntegrityError:
             continue
